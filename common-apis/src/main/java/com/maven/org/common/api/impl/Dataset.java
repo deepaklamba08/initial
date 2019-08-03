@@ -2,7 +2,9 @@ package com.maven.org.common.api.impl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -84,5 +86,14 @@ public class Dataset<T> implements IDataset<T> {
 	private <K> Dataset<K> newDataset(Stream<K> stream) {
 		List<K> values = stream.collect(Collectors.toList());
 		return new Dataset<K>(values);
+	}
+
+	@Override
+	public <K> Map<K, IDataset<T>> groupBy(Function<T, K> keyFx) {
+		Map<K, IDataset<T>> map=new HashMap<>();
+		this.data.parallelStream().collect(Collectors.groupingBy(keyFx)).forEach((k,v)->{
+			map.put(k, new Dataset<>(v));
+		});
+		return map;
 	}
 }

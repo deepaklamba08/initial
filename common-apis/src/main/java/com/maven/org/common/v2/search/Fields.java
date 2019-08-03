@@ -1,34 +1,44 @@
 package com.maven.org.common.v2.search;
 
-import com.maven.org.common.v2.numric.fx.Sum;
-import com.maven.org.common.v2.string.fx.Concat;
-import com.maven.org.common.v2.string.fx.Lower;
-import com.maven.org.common.v2.string.fx.Upper;
+import java.util.Arrays;
+import java.util.List;
 
 public class Fields {
 
 	public static Field select(String name) {
-		return new SelectionField(name);
+		return Projection.select(name);
 	}
 
-	public static Field concat(Field ... fields) {
+	public static List<Field> select(String... names) {
+		return Arrays.asList(selectInternal(names));
+	}
+
+	public static Field[] selectInternal(String... names) {
+		Field[] fields = new Field[names.length];
+		for (int i = 0; i <= names.length; i++) {
+			fields[i] = Projection.select(names[i]);
+		}
+		return fields;
+	}
+
+	public static Field concat(Field... fields) {
 		return new Concat(fields);
 	}
-	
-	public static Field concat(String ... fields) {
-		return new Concat(fields);
+
+	public static Field concat(String... fields) {
+		return new Concat(selectInternal(fields));
 	}
 
 	public static Field upper(Field field) {
 		return new Upper(field);
 	}
-	
+
 	public static Field upper(String field) {
-		return new Upper(field);
+		return new Upper(Projection.select( field));
 	}
 
 	public static Field lower(String field) {
-		return new Lower(field);
+		return new Lower(Projection.select( field));
 	}
 
 	public static Field lower(Field field) {
@@ -38,9 +48,9 @@ public class Fields {
 	public static Field sum(Field field) {
 		return new Sum(field);
 	}
-	
-	public static Field constant(Object value) {
-		return new ConstantField(value);
+
+	public static Field constant(String alias,Object value) {
+		return Projection.constants(value);
 	}
 
 }

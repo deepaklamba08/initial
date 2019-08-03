@@ -1,6 +1,7 @@
 package com.maven.org.common.api;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -16,6 +17,8 @@ public interface IDataset<T> {
 	public T find(Predicate<T> predicate);
 
 	public List<T> findMany(Predicate<T> predicate);
+
+	public <K> Map<K, IDataset<T>> groupBy(Function<T, K> keyFx);
 
 	public int size();
 
