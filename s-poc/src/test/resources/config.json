@@ -1,0 +1,11 @@
+[
+  {
+    "configName": "simple-lookup",
+    "baseQuery": "select * from student",
+    "attributeMap": {
+      "student id": "id",
+      "student name": "name",
+      "email id": "email"
+    }
+  }
+]
