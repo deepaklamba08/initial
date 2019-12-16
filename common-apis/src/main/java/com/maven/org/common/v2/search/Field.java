@@ -1,8 +1,9 @@
 package com.maven.org.common.v2.search;
 
-import com.maven.org.common.v2.filter.Visitor;
+import com.maven.org.common.v2.filter.Expression;
+import com.maven.org.common.v2.filter.ProjectionVisitor;
 
 public interface Field {
 
-	public String accept(Visitor visitor);
+	public Expression accept(ProjectionVisitor visitor);
 }

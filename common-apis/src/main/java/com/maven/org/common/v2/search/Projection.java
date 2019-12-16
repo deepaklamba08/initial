@@ -1,6 +1,7 @@
 package com.maven.org.common.v2.search;
 
-import com.maven.org.common.v2.filter.Visitor;
+import com.maven.org.common.v2.filter.Expression;
+import com.maven.org.common.v2.filter.ProjectionVisitor;
 
 public final class Projection implements Field {
 	private String name;
@@ -26,7 +27,7 @@ public final class Projection implements Field {
 	}
 
 	protected static Projection constants(Object value) {
-		return new Projection(Context.Distinct, null, value);
+		return new Projection(Context.Constant, null, value);
 	}
 
 	public String getName() {
@@ -42,7 +43,7 @@ public final class Projection implements Field {
 	}
 
 	@Override
-	public String accept(Visitor visitor) {
+	public Expression accept(ProjectionVisitor visitor) {
 		return visitor.visit(this);
 	}
 }

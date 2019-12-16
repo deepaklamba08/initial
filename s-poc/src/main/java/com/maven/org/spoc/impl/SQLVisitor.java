@@ -25,6 +25,7 @@ import com.maven.org.common.v2.filter.NotEq;
 import com.maven.org.common.v2.filter.NotIn;
 import com.maven.org.common.v2.filter.Operator;
 import com.maven.org.common.v2.filter.Or;
+import com.maven.org.common.v2.filter.ProjectionVisitor;
 import com.maven.org.common.v2.filter.RelationalOperator;
 import com.maven.org.common.v2.filter.StartsWith;
 import com.maven.org.common.v2.filter.Visitor;
@@ -38,7 +39,7 @@ import com.maven.org.common.v2.search.StringFunction;
 import com.maven.org.common.v2.search.Sum;
 import com.maven.org.common.v2.search.Upper;
 
-public class SQLVisitor implements Visitor {
+public class SQLVisitor implements Visitor,ProjectionVisitor {
 
 	private final String AND = "and";
 	private final String OR = "or";
@@ -221,8 +222,8 @@ public class SQLVisitor implements Visitor {
 	}
 
 	@Override
-	public String visit(Field field) {
-		return this.visitInternal(field, true);
+	public StringExpression visit(Field field) {
+		return new StringExpression(this.visitInternal(field, true));
 	}
 
 	private String visitInternal(Field field, boolean useAlias) {

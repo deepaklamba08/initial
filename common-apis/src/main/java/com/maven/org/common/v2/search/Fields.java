@@ -25,6 +25,10 @@ public class Fields {
 		return new Concat(fields);
 	}
 
+	public static Field concat(String alias, Field... fields) {
+		return new Concat(alias, fields);
+	}
+
 	public static Field concat(String... fields) {
 		return new Concat(selectInternal(fields));
 	}
@@ -34,11 +38,11 @@ public class Fields {
 	}
 
 	public static Field upper(String field) {
-		return new Upper(Projection.select( field));
+		return new Upper(Projection.select(field));
 	}
 
 	public static Field lower(String field) {
-		return new Lower(Projection.select( field));
+		return new Lower(Projection.select(field));
 	}
 
 	public static Field lower(Field field) {
@@ -49,7 +53,7 @@ public class Fields {
 		return new Sum(field);
 	}
 
-	public static Field constant(String alias,Object value) {
+	public static Field constant(String alias, Object value) {
 		return Projection.constants(value);
 	}
 
