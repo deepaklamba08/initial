@@ -1,25 +1,21 @@
 package com.maven.org.common.api.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.maven.org.common.api.Dataset;
+import com.maven.org.common.api.KeyValuedDataset;
+import com.maven.org.common.v2.filter.Operator;
+
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.maven.org.common.api.DataPersistorUtil;
-import com.maven.org.common.api.DatasetPersister;
-import com.maven.org.common.api.IDataset;
-
-public class Dataset<T> implements IDataset<T> {
+public class InMemoryDataset<T> implements Dataset<T> {
 
 	private List<T> data;
 
-	public Dataset(List<T> data) {
+	public InMemoryDataset(List<T> data) {
 		if (data == null) {
 			throw new IllegalArgumentException("data can not be null");
 		}
@@ -27,19 +23,19 @@ public class Dataset<T> implements IDataset<T> {
 	}
 	
 	@SafeVarargs
-	public static <T> IDataset<T> of(T ... data){
-		return new Dataset<T>(new ArrayList<>(Arrays.asList(data)));
+	public static <T> Dataset<T> of(T ... data){
+		return new InMemoryDataset(new ArrayList<>(Arrays.asList(data)));
 	}
 
-	public IDataset<T> filter(Predicate<T> predicate) {
+	public Dataset<T> filter(Predicate<T> predicate) {
 		return newDataset(this.data.parallelStream().filter(predicate));
 	}
 
-	public <U> IDataset<U> map(Function<T, U> mapFunction) {
+	public <U> Dataset<U> map(Function<T, U> mapFunction) {
 		return newDataset(this.data.parallelStream().map(mapFunction));
 	}
 
-	public <U> IDataset<U> flatMap(Function<T, Iterable<U>> flatMapFunction) {
+	public <U> Dataset<U> flatMap(Function<T, Iterable<U>> flatMapFunction) {
 		List<U> dataList = new ArrayList<>();
 		this.data.parallelStream().forEach(record -> {
 			Iterable<U> records = flatMapFunction.apply(record);
@@ -47,7 +43,7 @@ public class Dataset<T> implements IDataset<T> {
 				records.forEach(r -> dataList.add(r));
 			}
 		});
-		return new Dataset<U>(dataList);
+		return new InMemoryDataset(dataList);
 	}
 
 	public T find(Predicate<T> predicate) {
@@ -75,25 +71,47 @@ public class Dataset<T> implements IDataset<T> {
 		this.data.parallelStream().forEach(consumer);
 	}
 
-	public void persist(String database, String url, String user, char[] password) {
-		DatasetPersister datapersistor = DataPersistorUtil.getDatasetPersister(database);
-		if (datapersistor == null) {
-			throw new IllegalStateException("no data persistor found for database - " + database);
-		}
-		datapersistor.persist(database, url, user, password, data);
-	}
-
-	private <K> Dataset<K> newDataset(Stream<K> stream) {
-		List<K> values = stream.collect(Collectors.toList());
-		return new Dataset<K>(values);
+	@Override
+	public Dataset<T> select(String... columns) {
+		return null;
 	}
 
 	@Override
-	public <K> Map<K, IDataset<T>> groupBy(Function<T, K> keyFx) {
-		Map<K, IDataset<T>> map=new HashMap<>();
+	public Dataset<T> select(List<String> columns) {
+		return null;
+	}
+
+	@Override
+	public List<String> columns() {
+		return null;
+	}
+
+	@Override
+	public Dataset<T> dropColumn(String... columns) {
+		return null;
+	}
+
+	@Override
+	public Dataset<T> renameColumn(String oldName, String newName) {
+		return null;
+	}
+
+	@Override
+	public <R> Dataset<R> join(Dataset<T> other, Operator operator, String joinType) {
+		return null;
+	}
+
+	private <K> InMemoryDataset newDataset(Stream<K> stream) {
+		List<K> values = stream.collect(Collectors.toList());
+		return new InMemoryDataset(values);
+	}
+
+	@Override
+	public <K> KeyValuedDataset<K, T> groupBy(Function<T, K> keyFx) {
+		Map<K, com.maven.org.common.api.Dataset<T>> map=new HashMap<>();
 		this.data.parallelStream().collect(Collectors.groupingBy(keyFx)).forEach((k,v)->{
-			map.put(k, new Dataset<>(v));
+			map.put(k, new InMemoryDataset(v));
 		});
-		return map;
+		return null;
 	}
 }
