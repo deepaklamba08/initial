@@ -10,4 +10,6 @@ public interface Row {
 
     public Object get(int index);
 
+    public boolean hasField(String field);
+
 }

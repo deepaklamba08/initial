@@ -1,4 +1,4 @@
-package com.maven.org.common.api;
+package com.maven.org.common.api.model;
 
 import java.util.List;
 

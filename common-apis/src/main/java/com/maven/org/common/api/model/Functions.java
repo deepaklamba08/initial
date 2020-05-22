@@ -1,7 +1,7 @@
 package com.maven.org.common.api.model;
 
 public class Functions {
-
+/*
     public static Column col(String name) {
         return new ProjectionColumn(name);
     }
@@ -20,6 +20,6 @@ public class Functions {
 
     public static Column udf(String udfName, String... columnNames) {
         return null;
-    }
+    }*/
 
 }

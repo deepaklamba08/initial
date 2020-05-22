@@ -1,20 +1,21 @@
 package com.maven.org.common.api.impl;
 
-import com.maven.org.common.api.KeyValuedTable;
-import com.maven.org.common.api.model.Column;
+import com.maven.org.common.api.model.KeyValuedTable;
 import com.maven.org.common.api.model.Row;
-import com.maven.org.common.api.Table;
+import com.maven.org.common.api.model.Dataset;
 import com.maven.org.common.api.model.SchemaRow;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class InMemoryTable implements Table {
+public class InMemoryTable implements Dataset {
     private List<Row> data;
     private List<String> columns;
 
@@ -35,17 +36,17 @@ public class InMemoryTable implements Table {
 
 
     @Override
-    public Table filter(Predicate<Row> predicate) {
+    public Dataset filter(Predicate<Row> predicate) {
         return newDataset(this.data.parallelStream().filter(predicate));
     }
 
     @Override
-    public Table map(Function<Row, Row> mapFunction) {
+    public Dataset map(Function<Row, Row> mapFunction) {
         return newDataset(this.data.parallelStream().map(mapFunction));
     }
 
     @Override
-    public Table flatMap(Function<Row, Iterable<Row>> flatMapFunction) {
+    public Dataset flatMap(Function<Row, Iterable<Row>> flatMapFunction) {
         List<Row> dataList = new ArrayList<>();
         this.data.parallelStream().forEach(record -> {
             Iterable<Row> records = flatMapFunction.apply(record);
@@ -84,7 +85,6 @@ public class InMemoryTable implements Table {
     @Override
     public int count(Predicate<Row> predicate) {
         return this.filter(predicate).size();
-
     }
 
     @Override
@@ -98,40 +98,121 @@ public class InMemoryTable implements Table {
     }
 
     @Override
-    public Table select(String... columns) {
-        return null;
-    }
-
-    @Override
-    public Table select(Column... columns) {
-        return null;
+    public Dataset select(String... columns) {
+        List<Row> rows = this.data.stream().map(row -> {
+            Map<String, Object> data = new HashMap<>(columns.length);
+            for (String col : columns) {
+                data.put(col, row.get(col));
+            }
+            return new SchemaRow(data);
+        }).collect(Collectors.toList());
+        return new InMemoryTable(rows);
     }
 
     @Override
     public List<String> columns() {
+        return this.columns;
+    }
+
+    @Override
+    public Dataset dropColumn(String... columns) {
         return null;
     }
 
     @Override
-    public Table dropColumn(String... columns) {
-        return null;
-    }
-
-    @Override
-    public Table renameColumn(String oldName, String newName) {
-        return null;
-    }
-
-    @Override
-    public Table join(Table other, Column joinKey, String joinType) {
-        return null;
-    }
-
-    @Override
-    public Table union(Table other) {
+    public Dataset renameColumn(String oldName, String newName) {
         return null;
     }
 /*
+
+    @Override
+    public Dataset join(Dataset other, Column joinKey, String joinType) {
+        Map<Object, List<Row>> rightTable = this.toMap(this, joinKey);
+        Map<Object, List<Row>> leftTable = this.toMap(other, joinKey);
+        if ("inner".equals(joinType)) {
+            List<Row> dataItems = rightTable.entrySet().stream().flatMap(pair -> {
+                List<Row> rightRows = rightTable.get(pair.getKey());
+                List<Row> leftRows = leftTable.get(pair.getKey());
+                return leftRows == null ? Stream.empty() : merge(rightRows, leftRows, this.columns(), other.columns());
+            }).collect(Collectors.toList());
+            return new InMemoryTable(dataItems);
+        } else if ("left".equals(joinType)) {
+            List<Row> dataItems = leftTable.entrySet().stream().flatMap(pair -> {
+                List<Row> rightRows = rightTable.get(pair.getKey());
+                List<Row> leftRows = leftTable.get(pair.getKey());
+                return merge(rightRows, leftRows, this.columns(), other.columns());
+            }).collect(Collectors.toList());
+            return new InMemoryTable(dataItems);
+        } else if ("right".equals(joinType)) {
+            List<Row> dataItems = rightTable.entrySet().stream().flatMap(pair -> {
+                List<Row> rightRows = rightTable.get(pair.getKey());
+                List<Row> leftRows = leftTable.get(pair.getKey());
+                return merge(rightRows, leftRows, this.columns(), other.columns());
+            }).collect(Collectors.toList());
+            return new InMemoryTable(dataItems);
+        } else {
+            throw new IllegalStateException("Join type not supported - " + joinType);
+        }
+    }
+*/
+
+    @Override
+    public Dataset union(Dataset other) {
+        return null;
+    }
+
+    @Override
+    public void printSchema() {
+        if (this.columns == null) {
+            return;
+        }
+        StringBuilder schema = new StringBuilder();
+        this.columns.forEach(column -> {
+            schema.append("| ").append(column).append("\n");
+        });
+        System.out.println(schema);
+
+    }
+
+/*
+
+    private Map<Object, List<Row>> toMap(Dataset dataset, Column joinKey) {
+        return dataset.collect().stream().collect(Collectors.groupingBy(r -> r.get(joinKey.getName())));
+    }
+
+*/
+
+    private Stream<Row> merge(List<Row> right, List<Row> left, List<String> rightSchema, List<String> leftSchema) {
+        if (left == null) {
+            return right.stream().map(row -> merge(row, null, rightSchema, leftSchema));
+        } else if (right == null) {
+            return left.stream().map(row -> merge(null, row, rightSchema, leftSchema));
+        } else {
+            return right.stream().flatMap(rightRow ->
+                    left.stream().map(leftRow -> merge(rightRow, leftRow, rightSchema, leftSchema))
+            );
+        }
+    }
+
+    private Row merge(Row rightRow, Row leftRow, List<String> rightSchema, List<String> leftSchema) {
+        Map<String, Object> rightData = rightRow == null ? ofNulls(rightSchema) : ((SchemaRow) rightRow).getData();
+        Map<String, Object> leftData = leftRow == null ? ofNulls(leftSchema) : ((SchemaRow) leftRow).getData();
+        Map<String, Object> data = new HashMap<>(leftSchema.size() + rightSchema.size());
+        data.putAll(rightData);
+        data.putAll(leftData);
+
+        return new SchemaRow(data);
+    }
+
+    private Map<String, Object> ofNulls(List<String> columns) {
+        Map<String, Object> data = new HashMap<>(columns.size());
+        for (String column : columns) {
+            data.put(column, null);
+        }
+        return data;
+    }
+
+    /*
 
     @Override
     public Table<T> select(String... columns) {
@@ -189,73 +270,9 @@ public class InMemoryTable implements Table {
 
     @Override
     public Table<T> join(Table<T> other, Column joinKey, String joinType) {
-        Map<Object, List<Row>> rightDataset = this.toMap(this, joinKey);
-        Map<Object, List<Row>> leftDataset = this.toMap(other, joinKey);
-
-        if ("inner".equals(joinType)) {
-            List<Row> dataItems = rightDataset.entrySet().stream().flatMap(pair -> {
-                List<Row> rightRows = rightDataset.get(pair.getKey());
-                List<Row> leftRows = leftDataset.get(pair.getKey());
-                return leftRows == null ? Stream.empty() : merge(rightRows, leftRows, this.columns(), other.columns());
-            }).collect(Collectors.toList());
-            return new InMemoryDataset(dataItems);
-        } else if ("left".equals(joinType)) {
-            List<Row> dataItems = leftDataset.entrySet().stream().flatMap(pair -> {
-                List<Row> rightRows = rightDataset.get(pair.getKey());
-                List<Row> leftRows = leftDataset.get(pair.getKey());
-                return merge(rightRows, leftRows, this.columns(), other.columns());
-            }).collect(Collectors.toList());
-            return new InMemoryDataset(dataItems);
-        } else if ("right".equals(joinType)) {
-            List<Row> dataItems = rightDataset.entrySet().stream().flatMap(pair -> {
-                List<Row> rightRows = rightDataset.get(pair.getKey());
-                List<Row> leftRows = leftDataset.get(pair.getKey());
-                return merge(rightRows, leftRows, this.columns(), other.columns());
-            }).collect(Collectors.toList());
-            return new InMemoryDataset(dataItems);
-        }
-        return null;
 
 
-    }
 
-    private Stream<Row> merge(List<Row> right, List<Row> left, List<String> rightSchema, List<String> leftSchema) {
-        if (left == null) {
-            return right.stream().map(row -> merge(row, null, rightSchema, leftSchema));
-        } else if (right == null) {
-            return left.stream().map(row -> merge(null, row, rightSchema, leftSchema));
-        } else {
-            return right.stream().flatMap(rightRow ->
-                    left.stream().map(leftRow -> merge(rightRow, leftRow, rightSchema, leftSchema))
-            );
-        }
-    }
-
-    private Row merge(Row rightRow, Row leftRow, List<String> rightSchema, List<String> leftSchema) {
-        Object[] finalData = new Object[rightSchema.size() + leftSchema.size()];
-        String[] finalSchema = new String[rightSchema.size() + leftSchema.size()];
-
-        Object[] rightData = rightRow == null ? ofNulls(rightSchema.size()) : ((SchemaRow) rightRow).getData();
-        Object[] leftData = leftRow == null ? ofNulls(rightSchema.size()) : ((SchemaRow) leftRow).getData();
-
-        int index = 0;
-        for (; index < leftData.length; index++) {
-            finalData[index] = leftRow.get(index);
-            finalSchema[index] = rightSchema.get(index);
-        }
-        for (; index < rightSchema.size(); index++) {
-            finalData[index] = rightData[index - rightSchema.size()];
-            finalSchema[index] = rightSchema.get(index - rightSchema.size());
-        }
-        return new SchemaRow(finalData, finalSchema);
-    }
-
-    private Object[] ofNulls(int size) {
-        Object[] data = new Object[size];
-        for (int i = 0; i < size; i++) {
-            data[i] = null;
-        }
-        return data;
     }
 
     @Override
@@ -278,10 +295,6 @@ public class InMemoryTable implements Table {
         }).collect(Collectors.toList());
         return new InMemoryDataset(dataItems);
     }
-
-    private Map<Object, List<Row>> toMap(Table<T> dataset, Column joinKey) {
-        Function<T, Row> mapper = this.getMapper();
-        return dataset.collect().stream().map(r -> mapper.apply(r)).collect(Collectors.groupingBy(r -> r.get(joinKey.getName())));
-    }*/
+*/
 
 }

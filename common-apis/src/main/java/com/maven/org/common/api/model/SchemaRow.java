@@ -14,6 +14,10 @@ public class SchemaRow implements Row {
         this.columns = new ArrayList<>(data.keySet());
     }
 
+    public Map<String, Object> getData() {
+        return data;
+    }
+
     public List<String> getColumns() {
         return columns;
     }
@@ -25,16 +29,31 @@ public class SchemaRow implements Row {
 
     @Override
     public String getString(String field) {
-        return null;
+        Object value = this.get(field);
+        return value != null ? String.valueOf(value) : null;
     }
 
     @Override
     public Object get(String field) {
-        return null;
+        if (hasField(field)) {
+            return this.data != null ? this.data.get(field) : null;
+        } else {
+            throw new IllegalStateException("Field "+field+" not present in schema.");
+        }
     }
 
     @Override
     public Object get(int index) {
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return "| " + data + " |";
+    }
+
+    @Override
+    public boolean hasField(String field) {
+        return this.data.keySet().contains(field);
     }
 }
