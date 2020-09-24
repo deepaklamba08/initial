@@ -1,14 +1,11 @@
 package com.maven.org.common.api.impl;
 
+import com.maven.org.common.api.model.Dataset;
 import com.maven.org.common.api.model.KeyValuedTable;
 import com.maven.org.common.api.model.Row;
-import com.maven.org.common.api.model.Dataset;
 import com.maven.org.common.api.model.SchemaRow;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -71,10 +68,12 @@ public class InMemoryTable implements Dataset {
 
     @Override
     public <K> KeyValuedTable<K> groupBy(Function<Row, K> keyFx) {
-        this.data.parallelStream().collect(Collectors.groupingBy(keyFx)).forEach((k, v) -> {
-
-        });
-        return null;
+        InMemoryKeyValuedTable.InMemoryKeyValuedTableBuilder<K> builder = new InMemoryKeyValuedTable.InMemoryKeyValuedTableBuilder<K>();
+        Set<Map.Entry<K, List<Row>>> values = this.data.parallelStream().collect(Collectors.groupingBy(keyFx)).entrySet();
+        for (Map.Entry<K, List<Row>> entry : values) {
+            builder = builder.withDataPoints(entry.getKey(), entry.getValue());
+        }
+        return builder.build();
     }
 
     @Override
